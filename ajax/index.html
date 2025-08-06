@@ -34,47 +34,60 @@
     <!-- Status message area (success, error, loading) -->
     <div id="form-status" class="text-center text-sm font-medium"></div>
   </form>
+<script>
+// === DOM Elements ===
+const form = document.getElementById('contact-form');
+const statusEl = document.getElementById('form-status');
 
-  <script>
-    // === DOM Elements ===
-    const form = document.getElementById('contact-form');  // Our form element
-    const statusEl = document.getElementById('form-status'); // Status message container
+// === Handle Form Submit (AJAX) ===
+form.addEventListener('submit', async (e) => {
+  e.preventDefault(); // prevent normal page reload on submit
 
-  form.addEventListener('submit', async function (e) {
-  e.preventDefault();
+  // --- UI feedback: show "sending" state ---
   statusEl.textContent = 'Sending...';
   statusEl.className = 'text-center text-sm font-medium text-blue-600';
 
   try {
+    // --- Build form data (good for regular form posts & file uploads) ---
     const formData = new FormData(form);
 
+    // --- Send request using Fetch API ---
+    // X-Requested-With signals to backend that this is an AJAX request
     const response = await fetch('https://app.proforms.top/f/pr37edb88', {
       method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
       body: formData
     });
 
-    const result = await response.json().catch(() => null);
+    // --- Get raw response text (in case backend returns HTML) ---
+    const text = await response.text();
+    console.log('Raw response:', text); // For debugging response format
 
-    if (response.ok && result?.status === 'success') {
-      // Show the custom message from server
-      statusEl.textContent = result.message || 'Success, but no message provided';
+    // --- Attempt to parse JSON response ---
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (err) {
+      throw new Error('Response is not valid JSON: ' + err.message);
+    }
+
+    // --- Check backend response structure ---
+    if (json.status === 'success') {
+      // Success: Show server-provided success message & reset form
+      statusEl.textContent = json.message || 'Message sent successfully!';
       statusEl.className = 'text-center text-sm font-medium text-green-600';
-
-      // Optional: redirect if provided
-      if (result.redirect) {
-        window.location.href = result.redirect;
-      }
-
       form.reset();
     } else {
-      // If server sends error message or invalid structure
-      statusEl.textContent = result?.message || 'Failed to send message.';
+      // Failure: Show server-provided error message
+      statusEl.textContent = json.message || 'Failed to send message.';
       statusEl.className = 'text-center text-sm font-medium text-red-600';
     }
   } catch (error) {
+    // --- Network or parsing error ---
     statusEl.textContent = 'Network error: ' + error.message;
     statusEl.className = 'text-center text-sm font-medium text-red-600';
   }
-});  </script>
+});
+                      </script>
 </body>
 </html>
