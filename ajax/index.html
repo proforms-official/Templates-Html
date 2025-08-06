@@ -39,7 +39,8 @@
     // === DOM Elements ===
     const form = document.getElementById('contact-form');  // Our form element
     const statusEl = document.getElementById('form-status'); // Status message container
-form.addEventListener('submit', async function (e) {
+
+  form.addEventListener('submit', async function (e) {
   e.preventDefault();
   statusEl.textContent = 'Sending...';
   statusEl.className = 'text-center text-sm font-medium text-blue-600';
@@ -54,11 +55,19 @@ form.addEventListener('submit', async function (e) {
 
     const result = await response.json().catch(() => null);
 
-    if (response.ok) {
-      statusEl.textContent = result?.message || 'No message returned from server';
+    if (response.ok && result?.status === 'success') {
+      // Show the custom message from server
+      statusEl.textContent = result.message || 'Success, but no message provided';
       statusEl.className = 'text-center text-sm font-medium text-green-600';
+
+      // Optional: redirect if provided
+      if (result.redirect) {
+        window.location.href = result.redirect;
+      }
+
       form.reset();
     } else {
+      // If server sends error message or invalid structure
       statusEl.textContent = result?.message || 'Failed to send message.';
       statusEl.className = 'text-center text-sm font-medium text-red-600';
     }
@@ -66,7 +75,6 @@ form.addEventListener('submit', async function (e) {
     statusEl.textContent = 'Network error: ' + error.message;
     statusEl.className = 'text-center text-sm font-medium text-red-600';
   }
-}); 
-  </script>
+});  </script>
 </body>
 </html>
