@@ -3,91 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ProForms AJAX Contact Form</title>
-  <!-- Tailwind CSS for responsive & modern UI -->
+  <title>ProForms JSON Demo</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+  <div class="w-full max-w-md bg-white shadow-md rounded-lg p-6">
+    <h2 class="text-2xl font-bold text-blue-600 text-center mb-4">ProForms JSON Demo</h2>
+    <form id="demoForm" class="space-y-4">
+      <div>
+        <label class="block text-gray-700 font-medium">Name</label>
+        <input type="text" name="name" 
+               class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+      </div>
+      <div>
+        <label class="block text-gray-700 font-medium">Email</label>
+        <input type="email" name="email" 
+               class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
+      </div>
+      <button type="submit" 
+              class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">
+        Submit
+      </button>
+    </form>
 
-  <!-- Contact Form Container -->
-  <form id="contact-form" class="w-full max-w-md bg-white rounded-xl shadow-lg p-6 space-y-4">
-    <h2 class="text-2xl font-bold text-blue-600 text-center">Contact Us</h2>
+    <!-- Response Message -->
+    <div id="responseBox" class="hidden mt-4 p-3 rounded-lg text-center font-medium"></div>
+  </div>
 
-    <!-- User Name -->
-    <input type="text" name="name" placeholder="Your Name" required 
-           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+  <script>
+    document.getElementById('demoForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const data = {};
+      formData.forEach((value, key) => data[key] = value);
 
-    <!-- User Email -->
-    <input type="email" name="email" placeholder="Your Email" required
-           class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+      const responseBox = document.getElementById('responseBox');
+      responseBox.classList.remove('hidden', 'bg-green-100', 'bg-red-100', 'text-green-700', 'text-red-700');
+      responseBox.textContent = "Sending...";
+      responseBox.classList.add('bg-blue-100', 'text-blue-700');
 
-    <!-- Message Field -->
-    <textarea name="message" placeholder="Your Message" rows="5" required
-              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+      try {
+        const response = await fetch('https://app.proforms.top/f/pr37edb88', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify(data)
+        });
 
-    <!-- Submit Button -->
-    <button type="submit"
-            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">
-      Send Message
-    </button>
+        const result = await response.json().catch(() => ({ status: "error", message: "Invalid JSON response" }));
 
-    <!-- Status message area (success, error, loading) -->
-    <div id="form-status" class="text-center text-sm font-medium"></div>
-  </form>
-<script>
-// === DOM Elements ===
-const form = document.getElementById('contact-form');
-const statusEl = document.getElementById('form-status');
-
-// === Handle Form Submit (AJAX) ===
-form.addEventListener('submit', async (e) => {
-  e.preventDefault(); // prevent normal page reload on submit
-
-  // --- UI feedback: show "sending" state ---
-  statusEl.textContent = 'Sending...';
-  statusEl.className = 'text-center text-sm font-medium text-blue-600';
-
-  try {
-    // --- Build form data (good for regular form posts & file uploads) ---
-    const formData = new FormData(form);
-
-    // --- Send request using Fetch API ---
-    // X-Requested-With signals to backend that this is an AJAX request
-    const response = await fetch('https://app.proforms.top/f/pr37edb88', {
-      method: 'POST',
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
-      body: formData
+        if (result.status === "success") {
+          responseBox.textContent = result.message || "Message sent successfully!";
+          responseBox.classList.remove('bg-blue-100', 'text-blue-700');
+          responseBox.classList.add('bg-green-100', 'text-green-700');
+          form.reset();
+        } else {
+          responseBox.textContent = result.message || "Failed to send message.";
+          responseBox.classList.remove('bg-blue-100', 'text-blue-700');
+          responseBox.classList.add('bg-red-100', 'text-red-700');
+        }
+      } catch (err) {
+        responseBox.textContent = "Network error: " + err.message;
+        responseBox.classList.remove('bg-blue-100', 'text-blue-700');
+        responseBox.classList.add('bg-red-100', 'text-red-700');
+      }
     });
-
-    // --- Get raw response text (in case backend returns HTML) ---
-    const text = await response.text();
-    console.log('Raw response:', text); // For debugging response format
-
-    // --- Attempt to parse JSON response ---
-    let json;
-    try {
-      json = JSON.parse(text);
-    } catch (err) {
-      throw new Error('Response is not valid JSON: ' + err.message);
-    }
-
-    // --- Check backend response structure ---
-    if (json.status === 'success') {
-      // Success: Show server-provided success message & reset form
-      statusEl.textContent = json.message || 'Message sent successfully!';
-      statusEl.className = 'text-center text-sm font-medium text-green-600';
-      form.reset();
-    } else {
-      // Failure: Show server-provided error message
-      statusEl.textContent = json.message || 'Failed to send message.';
-      statusEl.className = 'text-center text-sm font-medium text-red-600';
-    }
-  } catch (error) {
-    // --- Network or parsing error ---
-    statusEl.textContent = 'Network error: ' + error.message;
-    statusEl.className = 'text-center text-sm font-medium text-red-600';
-  }
-});
-                      </script>
+  </script>
 </body>
 </html>
