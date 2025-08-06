@@ -39,54 +39,34 @@
     // === DOM Elements ===
     const form = document.getElementById('contact-form');  // Our form element
     const statusEl = document.getElementById('form-status'); // Status message container
+form.addEventListener('submit', async function (e) {
+  e.preventDefault();
+  statusEl.textContent = 'Sending...';
+  statusEl.className = 'text-center text-sm font-medium text-blue-600';
 
-    // === Form Submission Event Handler ===
-    form.addEventListener('submit', async function (e) {
-      e.preventDefault(); // Prevent normal form submission (page reload)
+  try {
+    const formData = new FormData(form);
 
-      // Update UI to show "sending" state
-      statusEl.textContent = 'Sending...';
-      statusEl.className = 'text-center text-sm font-medium text-blue-600';
-
-      try {
-        // Collect form data in FormData format for submission
-        const formData = new FormData(form);
-
-        // Send form data via POST request to ProForms endpoint
-        const response = await fetch('https://app.proforms.top/f/pr37edb88', {
-          method: 'POST',
-          body: formData
-        });
-
-        // Get raw response text (could be JSON or plain text)
-        const text = await response.text();
-        let json;
-        try {
-          // Try parsing JSON response
-          json = JSON.parse(text);
-        } catch {
-          // If response is not JSON, treat it as raw text
-          json = { message: text };
-        }
-
-        // === Handle Server Response ===
-        if (response.ok) {
-          // Success: show success message and reset form
-          statusEl.textContent = json.message || 'Message sent successfully!';
-          statusEl.className = 'text-center text-sm font-medium text-green-600';
-          form.reset();
-        } else {
-          // Server returned error (validation, spam block, etc.)
-          statusEl.textContent = json.message || 'Failed to send message. Please try again.';
-          statusEl.className = 'text-center text-sm font-medium text-red-600';
-        }
-      } catch (error) {
-        // Handle network-level errors (no internet, server unreachable, etc.)
-        statusEl.textContent = 'Network error: ' + error.message;
-        statusEl.className = 'text-center text-sm font-medium text-red-600';
-        console.error('ProForms submission error:', error);
-      }
+    const response = await fetch('https://app.proforms.top/f/pr37edb88', {
+      method: 'POST',
+      body: formData
     });
+
+    const result = await response.json().catch(() => null);
+
+    if (response.ok) {
+      statusEl.textContent = result?.message || 'No message returned from server';
+      statusEl.className = 'text-center text-sm font-medium text-green-600';
+      form.reset();
+    } else {
+      statusEl.textContent = result?.message || 'Failed to send message.';
+      statusEl.className = 'text-center text-sm font-medium text-red-600';
+    }
+  } catch (error) {
+    statusEl.textContent = 'Network error: ' + error.message;
+    statusEl.className = 'text-center text-sm font-medium text-red-600';
+  }
+}); 
   </script>
 </body>
 </html>
