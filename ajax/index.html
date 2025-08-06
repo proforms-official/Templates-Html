@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProForms AJAX Contact Form</title>
+    <style>
+        /* Basic styling for a clean UI */
+        body {
+            font-family: Arial, sans-serif;
+            padding: 2rem;
+            background: #f9f9f9;
+        }
+        form {
+            max-width: 400px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        input, textarea, button {
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        button {
+            background: #007bff;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        /* Status message styles */
+        .status {
+            margin-top: 1rem;
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+        .success { color: #007b00; }
+        .error { color: #b30000; }
+    </style>
+</head>
+<body>
+
+    <!-- 
+        Contact Form Structure:
+        - Minimal required fields: name, email, message.
+        - Uses HTML5 validation (`required`).
+        - Submissions handled via AJAX (no page reload).
+    -->
+    <form id="contact-form">
+        <h2>Contact Us</h2>
+        <input type="text" name="name" placeholder="Your Name" required>
+        <input type="email" name="email" placeholder="Your Email" required>
+        <textarea name="message" placeholder="Your Message" rows="5" required></textarea>
+        <button type="submit">Send Message</button>
+        <!-- Status messages (success or error) will appear here -->
+        <div class="status" id="form-status"></div>
+    </form>
+
+    <script>
+        // Get reference to form and status element
+        const form = document.getElementById('contact-form');
+        const statusEl = document.getElementById('form-status');
+
+        // Handle form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default page reload
+            statusEl.textContent = "Sending..."; // Temporary status text
+            statusEl.className = "status"; // Reset styles
+
+            // Collect form data for POST submission
+            const formData = new FormData(form);
+
+            // Send form data to ProForms endpoint via AJAX
+            fetch('https://proforms.top/f/pr37edb88', {
+                method: 'POST',
+                body: formData
+            })
+            .then(async response => {
+                // Always read the response message (even if error)
+                const rawText = await response.text();
+                let json;
+
+                // Try parsing JSON; fallback to raw text if parsing fails
+                try {
+                    json = JSON.parse(rawText);
+                } catch {
+                    json = { message: rawText };
+                }
+
+                // If request succeeded (HTTP 2xx)
+                if (response.ok) {
+                    statusEl.textContent = json.message || 'Message sent successfully!';
+                    statusEl.className = "status success";
+                    form.reset(); // Reset form after successful submission
+                } 
+                // If request failed (e.g., validation error, spam block, server issue)
+                else {
+                    statusEl.textContent = json.message || 'Failed to send message. Please try again.';
+                    statusEl.className = "status error";
+                }
+            })
+            .catch(error => {
+                // Handle network issues or fetch errors
+                statusEl.textContent = 'Network error: ' + error.message;
+                statusEl.className = "status error";
+                console.error('ProForms submission error:', error);
+            });
+        });
+    </script>
+</body>
+  </html>
